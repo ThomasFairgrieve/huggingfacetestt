@@ -1003,20 +1003,13 @@ function renderResults() {
 // ─── HF API CALL ───────────────────────────────────────────────────────────
 
 async function callHF(text, token) {
-  const url = "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english";
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ inputs: text })
+  const { HfInference } = await import("https://cdn.jsdelivr.net/npm/@huggingface/inference@2/+esm");
+  const hf = new HfInference(token);
+  const result = await hf.textClassification({
+    model: "distilbert-base-uncased-finetuned-sst-2-english",
+    inputs: text
   });
-  const data = await response.json();
-  if (!response.ok || data.error) {
-    throw new Error(data.error || `API error ${response.status}`);
-  }
-  return data[0];
+  return result;
 }
 
 function buildResultHTML(results) {
