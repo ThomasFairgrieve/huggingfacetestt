@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battery — Device API Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0e0f11; --surface: #16181c; --surface2: #1e2025;
+      --border: rgba(255,255,255,0.07); --text: #e8e9eb; --muted: #6b6f7a;
+      --accent: #7c6fff; --accent-soft: rgba(124,111,255,0.12);
+      --green: #4ade80; --green-soft: rgba(74,222,128,0.10);
+      --red: #f87171; --red-soft: rgba(248,113,113,0.10);
+      --amber: #fbbf24; --amber-soft: rgba(251,191,36,0.10);
+    }
+    body {
+      font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 2rem 1rem 4rem;
+    }
+    .sitenav { width: 100%; max-width: 640px; display: flex; gap: 0.25rem; margin-bottom: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.35rem; }
+    .sitenav a { flex: 1; text-align: center; text-decoration: none; font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); padding: 0.45rem 0.25rem; border-radius: 8px; transition: all 0.15s; }
+    .sitenav a:hover { color: var(--text); background: var(--surface2); }
+    .sitenav a.active { color: var(--text); background: var(--surface2); }
+    header { width: 100%; max-width: 640px; display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 2rem; }
+    header h1 { font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 400; }
+    header span { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; }
+    .main { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 1rem; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; }
+    .label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.75rem; }
+    .status { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); min-height: 1.2em; padding: 0 0.25rem; }
+    .status.ok { color: var(--green); }
+    .status.warn { color: var(--amber); }
+    .status.err { color: var(--red); }
+
+    /* Battery icon */
+    .battery-wrap {
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem 0;
+    }
+    .battery-icon {
+      position: relative; width: 200px; height: 100px;
+      border: 2px solid rgba(255,255,255,0.15); border-radius: 10px;
+    }
+    .battery-icon::after {
+      content: ''; position: absolute; right: -12px; top: 50%;
+      transform: translateY(-50%); width: 10px; height: 36px;
+      background: rgba(255,255,255,0.15); border-radius: 0 4px 4px 0;
+    }
+    .battery-fill {
+      position: absolute; left: 4px; top: 4px; bottom: 4px;
+      border-radius: 6px; transition: width 0.5s, background 0.5s;
+      min-width: 0;
+    }
+    .battery-pct {
+      position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center;
+      font-family: 'DM Mono', monospace; font-size: 1.4rem; font-weight: 400;
+      color: var(--text); z-index: 1;
+    }
+    .charging-bolt {
+      display: none; position: absolute; top: -10px; right: -10px;
+      font-size: 1.2rem; color: var(--amber);
+    }
+    .charging-bolt.visible { display: block; }
+
+    /* Info grid */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .info-card { background: var(--surface2); border-radius: 10px; padding: 0.75rem 1rem; }
+    .info-card .val { font-family: 'DM Mono', monospace; font-size: 1.2rem; }
+    .info-card .key { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
+    /* Event log */
+    .log { background: var(--surface2); border-radius: 10px; padding: 0.75rem; max-height: 160px; overflow-y: auto; }
+    .log-entry { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); padding: 3px 0; border-bottom: 1px solid var(--border); }
+    .log-entry:last-child { border-bottom: none; }
+    .log-entry .time { color: var(--muted); margin-right: 0.5rem; }
+    .log-entry .msg { color: var(--text); }
+    .log-empty { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <nav class="sitenav">
+    <a href="index.html">Voice</a>
+    <a href="camera.html">Camera</a>
+    <a href="orientation.html">Orientation</a>
+    <a href="motion.html">Motion</a>
+    <a href="battery.html" class="active">Battery</a>
+  </nav>
+
+  <header>
+    <h1>Battery</h1>
+    <span>Battery Status API</span>
+  </header>
+
+  <div class="main">
+
+    <div class="status" id="status">reading battery status...</div>
+
+    <div class="panel">
+      <div class="label">battery level</div>
+      <div class="battery-wrap">
+        <div class="battery-icon">
+          <div class="battery-fill" id="batteryFill" style="width:0%;background:var(--green)"></div>
+          <div class="battery-pct" id="batteryPct">—%</div>
+          <div class="charging-bolt" id="chargingBolt">⚡</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">details</div>
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="val" id="chargingVal">—</div>
+          <div class="key">charging status</div>
+        </div>
+        <div class="info-card">
+          <div class="val" id="levelVal">—</div>
+          <div class="key">level</div>
+        </div>
+        <div class="info-card">
+          <div class="val" id="chargeTime">—</div>
+          <div class="key">time to full</div>
+        </div>
+        <div class="info-card">
+          <div class="val" id="dischargeTime">—</div>
+          <div class="key">time remaining</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">event log</div>
+      <div class="log" id="log">
+        <div class="log-empty">events will appear here when battery status changes</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status')
+    const batteryFill = document.getElementById('batteryFill')
+    const batteryPct = document.getElementById('batteryPct')
+    const chargingBolt = document.getElementById('chargingBolt')
+    const log = document.getElementById('log')
+
+    function formatTime(seconds) {
+      if (!seconds || seconds === Infinity) return '—'
+      const h = Math.floor(seconds / 3600)
+      const m = Math.floor((seconds % 3600) / 60)
+      if (h > 0) return h + 'h ' + m + 'm'
+      return m + 'm'
+    }
+
+    function addLog(msg) {
+      const empty = log.querySelector('.log-empty')
+      if (empty) empty.remove()
+      const entry = document.createElement('div')
+      entry.className = 'log-entry'
+      const now = new Date()
+      const t = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      entry.innerHTML = `<span class="time">${t}</span><span class="msg">${msg}</span>`
+      log.insertBefore(entry, log.firstChild)
+    }
+
+    function updateUI(battery) {
+      const pct = Math.round(battery.level * 100)
+      batteryPct.textContent = pct + '%'
+      batteryFill.style.width = pct + '%'
+
+      let fillColor = 'var(--green)'
+      if (pct <= 20) fillColor = 'var(--red)'
+      else if (pct <= 40) fillColor = 'var(--amber)'
+      batteryFill.style.background = fillColor
+
+      chargingBolt.classList.toggle('visible', battery.charging)
+
+      document.getElementById('chargingVal').textContent = battery.charging ? 'charging' : 'on battery'
+      document.getElementById('levelVal').textContent = pct + '%'
+      document.getElementById('chargeTime').textContent = formatTime(battery.chargingTime)
+      document.getElementById('dischargeTime').textContent = formatTime(battery.dischargingTime)
+
+      let msg = pct + '% — '
+      if (pct <= 20) { msg += 'low battery'; statusEl.className = 'status warn' }
+      else { msg += battery.charging ? 'charging' : 'on battery'; statusEl.className = 'status ok' }
+      statusEl.textContent = msg
+    }
+
+    if ('getBattery' in navigator) {
+      navigator.getBattery().then(battery => {
+        updateUI(battery)
+        addLog('battery status loaded')
+
+        battery.addEventListener('levelchange', () => {
+          updateUI(battery)
+          addLog('level changed to ' + Math.round(battery.level * 100) + '%')
+        })
+        battery.addEventListener('chargingchange', () => {
+          updateUI(battery)
+          addLog(battery.charging ? 'charging started' : 'unplugged from charger')
+        })
+        battery.addEventListener('chargingtimechange', () => {
+          addLog('charge time updated: ' + formatTime(battery.chargingTime))
+        })
+        battery.addEventListener('dischargingtimechange', () => {
+          addLog('discharge time updated: ' + formatTime(battery.dischargingTime))
+        })
+      })
+    } else {
+      statusEl.textContent = 'Battery API not supported in this browser'
+      statusEl.className = 'status err'
+    }
+  </script>
+</body>
+</html>

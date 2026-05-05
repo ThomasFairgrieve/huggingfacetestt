@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orientation — Device API Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0e0f11; --surface: #16181c; --surface2: #1e2025;
+      --border: rgba(255,255,255,0.07); --text: #e8e9eb; --muted: #6b6f7a;
+      --accent: #7c6fff; --accent-soft: rgba(124,111,255,0.12);
+      --green: #4ade80; --amber: #fbbf24;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 2rem 1rem 4rem;
+    }
+    .sitenav {
+      width: 100%; max-width: 640px; display: flex; gap: 0.25rem;
+      margin-bottom: 2rem; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 12px; padding: 0.35rem;
+    }
+    .sitenav a { flex: 1; text-align: center; text-decoration: none; font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); padding: 0.45rem 0.25rem; border-radius: 8px; transition: all 0.15s; }
+    .sitenav a:hover { color: var(--text); background: var(--surface2); }
+    .sitenav a.active { color: var(--text); background: var(--surface2); }
+    header { width: 100%; max-width: 640px; display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 2rem; }
+    header h1 { font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 400; }
+    header span { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; }
+    .main { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 1rem; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; }
+    .label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.75rem; }
+    .status { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); min-height: 1.2em; padding: 0 0.25rem; }
+    .status.active { color: var(--green); }
+
+    /* Ball visualiser */
+    .ball-arena {
+      width: 100%; aspect-ratio: 1; background: var(--surface2);
+      border-radius: 12px; position: relative; overflow: hidden;
+    }
+    .ball {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--accent); position: absolute;
+      transform: translate(-50%, -50%);
+      top: 50%; left: 50%;
+      transition: top 0.1s, left 0.1s;
+      box-shadow: 0 0 24px rgba(124,111,255,0.4);
+    }
+    .crosshair {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 1px; height: 100%; background: var(--border);
+    }
+    .crosshair::after {
+      content: ''; position: absolute; top: 50%; left: -200px;
+      width: 400px; height: 1px; background: var(--border);
+    }
+
+    /* Axis cards */
+    .axis-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+    .axis-card { background: var(--surface2); border-radius: 10px; padding: 0.75rem; }
+    .axis-card .axis-name { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); }
+    .axis-card .axis-val { font-family: 'DM Mono', monospace; font-size: 1.4rem; font-weight: 400; margin: 4px 0 2px; }
+    .axis-card .axis-desc { font-size: 0.72rem; color: var(--muted); line-height: 1.4; }
+    .alpha .axis-val { color: #f87171; }
+    .beta .axis-val { color: var(--amber); }
+    .gamma .axis-val { color: var(--green); }
+
+    /* Bar */
+    .bar-wrap { height: 6px; background: var(--surface); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; transition: width 0.1s; }
+    .alpha .bar-fill { background: #f87171; }
+    .beta .bar-fill { background: var(--amber); }
+    .gamma .bar-fill { background: var(--green); }
+
+    .btn {
+      width: 100%; height: 44px; border-radius: 10px; border: 1px solid rgba(124,111,255,0.35);
+      background: var(--accent-soft); color: #a89fff; font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { background: rgba(124,111,255,0.2); }
+  </style>
+</head>
+<body>
+
+  <nav class="sitenav">
+    <a href="index.html">Voice</a>
+    <a href="camera.html">Camera</a>
+    <a href="orientation.html" class="active">Orientation</a>
+    <a href="motion.html">Motion</a>
+    <a href="battery.html">Battery</a>
+  </nav>
+
+  <header>
+    <h1>Orientation</h1>
+    <span>DeviceOrientation API</span>
+  </header>
+
+  <div class="main">
+
+    <button class="btn" id="startBtn">Enable orientation sensor</button>
+    <div class="status" id="status">tap the button, then tilt your device</div>
+
+    <div class="panel">
+      <div class="label">tilt visualiser — tilt to move the ball</div>
+      <div class="ball-arena" id="arena">
+        <div class="crosshair"></div>
+        <div class="ball" id="ball"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">raw values</div>
+      <div class="axis-grid">
+        <div class="axis-card alpha">
+          <div class="axis-name">alpha (α)</div>
+          <div class="axis-val" id="alpha">0°</div>
+          <div class="axis-desc">Compass heading — rotation around Z axis</div>
+          <div class="bar-wrap"><div class="bar-fill" id="alphaBar" style="width:0%"></div></div>
+        </div>
+        <div class="axis-card beta">
+          <div class="axis-name">beta (β)</div>
+          <div class="axis-val" id="beta">0°</div>
+          <div class="axis-desc">Front-back tilt — rotation around X axis</div>
+          <div class="bar-wrap"><div class="bar-fill" id="betaBar" style="width:50%"></div></div>
+        </div>
+        <div class="axis-card gamma">
+          <div class="axis-name">gamma (γ)</div>
+          <div class="axis-val" id="gamma">0°</div>
+          <div class="axis-desc">Left-right tilt — rotation around Y axis</div>
+          <div class="bar-wrap"><div class="bar-fill" id="gammaBar" style="width:50%"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn')
+    const statusEl = document.getElementById('status')
+    const ball = document.getElementById('ball')
+    const arena = document.getElementById('arena')
+
+    function handleOrientation(e) {
+      const alpha = e.alpha !== null ? Math.round(e.alpha) : null
+      const beta = e.beta !== null ? Math.round(e.beta) : null
+      const gamma = e.gamma !== null ? Math.round(e.gamma) : null
+
+      if (alpha === null) {
+        statusEl.textContent = 'sensor not available on this device'
+        return
+      }
+
+      statusEl.textContent = 'sensor active — tilt the device'
+      statusEl.className = 'status active'
+
+      document.getElementById('alpha').textContent = alpha + '°'
+      document.getElementById('beta').textContent = beta + '°'
+      document.getElementById('gamma').textContent = gamma + '°'
+
+      // Bars: alpha 0-360, beta -180 to 180, gamma -90 to 90
+      document.getElementById('alphaBar').style.width = (alpha / 360 * 100).toFixed(1) + '%'
+      document.getElementById('betaBar').style.width = ((beta + 180) / 360 * 100).toFixed(1) + '%'
+      document.getElementById('gammaBar').style.width = ((gamma + 90) / 180 * 100).toFixed(1) + '%'
+
+      // Ball position: gamma controls X (-90 to 90), beta controls Y (-90 to 90 roughly)
+      const clampedGamma = Math.max(-45, Math.min(45, gamma))
+      const clampedBeta = Math.max(-45, Math.min(45, beta))
+      const xPct = 50 + (clampedGamma / 45) * 45
+      const yPct = 50 + (clampedBeta / 45) * 45
+      ball.style.left = xPct.toFixed(1) + '%'
+      ball.style.top = yPct.toFixed(1) + '%'
+    }
+
+    function startListening() {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(state => {
+            if (state === 'granted') {
+              window.addEventListener('deviceorientation', handleOrientation)
+              startBtn.style.display = 'none'
+            } else {
+              statusEl.textContent = 'permission denied'
+            }
+          }).catch(() => { statusEl.textContent = 'could not request permission' })
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation)
+        startBtn.style.display = 'none'
+        statusEl.textContent = 'sensor listening...'
+      }
+    }
+
+    startBtn.addEventListener('click', startListening)
+  </script>
+</body>
+</html>

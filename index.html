@@ -33,6 +33,31 @@
       padding: 2rem 1rem 4rem;
     }
 
+    .sitenav {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.35rem;
+    }
+    .sitenav a {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      padding: 0.45rem 0.25rem;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+    .sitenav a:hover { color: var(--text); background: var(--surface2); }
+    .sitenav a.active { color: var(--text); background: var(--surface2); }
+
     header {
       width: 100%;
       max-width: 640px;
@@ -68,7 +93,6 @@
       gap: 1rem;
     }
 
-    /* -- Input Panel -- */
     .input-panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -100,7 +124,6 @@
       border-top: 1px solid var(--border);
     }
 
-    /* -- Mic Button -- */
     .mic-btn {
       width: 44px;
       height: 44px;
@@ -130,10 +153,8 @@
     }
 
     .mic-btn svg { width: 18px; height: 18px; }
-
     .mic-btn.listening svg path { fill: var(--accent); }
 
-    /* -- Speak Button -- */
     .speak-btn {
       flex: 1;
       height: 44px;
@@ -154,7 +175,6 @@
     .speak-btn:hover { background: var(--green-soft); border-color: var(--green); color: var(--green); }
     .speak-btn.speaking { background: var(--green-soft); border-color: var(--green); color: var(--green); }
 
-    /* -- Save Button -- */
     .save-btn {
       height: 44px;
       padding: 0 1.1rem;
@@ -171,7 +191,6 @@
 
     .save-btn:hover { background: rgba(124,111,255,0.2); }
 
-    /* -- Status bar -- */
     .status {
       font-family: 'DM Mono', monospace;
       font-size: 0.72rem;
@@ -184,7 +203,6 @@
     .status.active { color: var(--accent); }
     .status.speaking { color: var(--green); }
 
-    /* -- Notes list -- */
     .notes-label {
       font-family: 'DM Mono', monospace;
       font-size: 0.72rem;
@@ -213,7 +231,6 @@
     }
 
     .note-card:hover { border-color: rgba(255,255,255,0.15); }
-
     .note-card:hover .note-speak { opacity: 1; }
 
     .note-text {
@@ -254,7 +271,6 @@
       font-family: 'DM Mono', monospace;
     }
 
-    /* -- Voice speed control -- */
     .controls-row {
       display: flex;
       align-items: center;
@@ -294,6 +310,14 @@
 </head>
 <body>
 
+  <nav class="sitenav">
+    <a href="index.html" class="active">Voice</a>
+    <a href="camera.html">Camera</a>
+    <a href="orientation.html">Orientation</a>
+    <a href="motion.html">Motion</a>
+    <a href="battery.html">Battery</a>
+  </nav>
+
   <header>
     <h1>VoiceNote</h1>
     <span>Web Speech API demo</span>
@@ -301,30 +325,24 @@
 
   <div class="main">
 
-    <!-- Input panel -->
     <div class="input-panel">
       <textarea id="noteText" placeholder="Type a note, or press the mic and speak..." rows="4"></textarea>
       <div class="input-actions">
-        <!-- Mic button -->
         <button class="mic-btn" id="micBtn" title="Start voice input">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path id="micIcon" d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm6 9a1 1 0 0 1 2 0 8.001 8.001 0 0 1-7 7.938V20h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.062A8.001 8.001 0 0 1 4 10a1 1 0 0 1 2 0 6 6 0 0 0 12 0z" fill="#6b6f7a"/>
           </svg>
         </button>
-        <!-- Speak button -->
         <button class="speak-btn" id="speakBtn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
           Read aloud
         </button>
-        <!-- Save button -->
         <button class="save-btn" id="saveBtn">Save note</button>
       </div>
     </div>
 
-    <!-- Status -->
     <div class="status" id="status">ready</div>
 
-    <!-- Voice controls -->
     <div class="controls-row">
       <div class="control-item">
         voice
@@ -339,10 +357,8 @@
 
     <div class="divider"></div>
 
-    <!-- Notes label -->
     <div class="notes-label">saved notes</div>
 
-    <!-- Notes list -->
     <div class="notes-list" id="notesList">
       <div class="empty-state" id="emptyState">no notes yet — speak or type one above</div>
     </div>
@@ -367,7 +383,6 @@
     let recognition = null
     let voices = []
 
-    // ── Speech Recognition ──────────────────────────────────────
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
 
     if (SpeechRecognition) {
@@ -420,13 +435,10 @@
       setStatus('ready', '')
     }
 
-    // ── Text-to-Speech ───────────────────────────────────────────
     function loadVoices() {
       voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'))
       voiceSelect.innerHTML = ''
-      if (!voices.length) {
-        voices = speechSynthesis.getVoices()
-      }
+      if (!voices.length) voices = speechSynthesis.getVoices()
       voices.forEach((v, i) => {
         const opt = document.createElement('option')
         opt.value = i
@@ -445,38 +457,30 @@
     function speakText(text) {
       if (!text.trim()) return
       speechSynthesis.cancel()
-
       const utt = new SpeechSynthesisUtterance(text)
       utt.voice = voices[voiceSelect.value] || null
       utt.rate = parseFloat(rateSlider.value)
       utt.pitch = 1
-
       utt.onstart = () => {
         isSpeaking = true
         speakBtn.classList.add('speaking')
         speakBtn.textContent = 'Speaking...'
         setStatus('speaking...', 'speaking')
       }
-
       utt.onend = () => {
         isSpeaking = false
         speakBtn.classList.remove('speaking')
         speakBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg> Read aloud`
         setStatus('ready', '')
       }
-
       speechSynthesis.speak(utt)
     }
 
     speakBtn.addEventListener('click', () => {
-      if (isSpeaking) {
-        speechSynthesis.cancel()
-        return
-      }
+      if (isSpeaking) { speechSynthesis.cancel(); return }
       speakText(textarea.value)
     })
 
-    // ── Save Note ────────────────────────────────────────────────
     saveBtn.addEventListener('click', () => {
       const text = textarea.value.trim()
       if (!text) return
@@ -502,7 +506,7 @@
       }
       emptyState.style.display = 'none'
       notesList.innerHTML = ''
-      notes.forEach((note, i) => {
+      notes.forEach((note) => {
         const card = document.createElement('div')
         card.className = 'note-card'
         card.innerHTML = `
@@ -526,7 +530,6 @@
       })
     }
 
-    // ── Helpers ──────────────────────────────────────────────────
     function setStatus(msg, cls) {
       statusEl.textContent = msg
       statusEl.className = 'status ' + (cls || '')
@@ -536,7 +539,6 @@
       return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     }
 
-    // Seed a demo note so it's not empty on load
     addNote("Tap the mic and start talking — your words will appear above. Hit 'Read aloud' to hear them back.")
   </script>
 </body>

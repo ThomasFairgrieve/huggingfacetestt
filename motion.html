@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Motion — Device API Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0e0f11; --surface: #16181c; --surface2: #1e2025;
+      --border: rgba(255,255,255,0.07); --text: #e8e9eb; --muted: #6b6f7a;
+      --accent: #7c6fff; --accent-soft: rgba(124,111,255,0.12);
+      --green: #4ade80; --green-soft: rgba(74,222,128,0.10);
+      --red: #f87171; --red-soft: rgba(248,113,113,0.10);
+      --amber: #fbbf24;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 2rem 1rem 4rem;
+    }
+    .sitenav { width: 100%; max-width: 640px; display: flex; gap: 0.25rem; margin-bottom: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.35rem; }
+    .sitenav a { flex: 1; text-align: center; text-decoration: none; font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); padding: 0.45rem 0.25rem; border-radius: 8px; transition: all 0.15s; }
+    .sitenav a:hover { color: var(--text); background: var(--surface2); }
+    .sitenav a.active { color: var(--text); background: var(--surface2); }
+    header { width: 100%; max-width: 640px; display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 2rem; }
+    header h1 { font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 400; }
+    header span { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; }
+    .main { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 1rem; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; }
+    .label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.75rem; }
+    .status { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); min-height: 1.2em; padding: 0 0.25rem; }
+    .status.active { color: var(--green); }
+    .status.shake { color: var(--red); }
+    .btn { width: 100%; height: 44px; border-radius: 10px; border: 1px solid rgba(124,111,255,0.35); background: var(--accent-soft); color: #a89fff; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { background: rgba(124,111,255,0.2); }
+
+    /* Shake display */
+    .shake-display {
+      text-align: center; padding: 2rem 1rem;
+      border-radius: 12px; background: var(--surface2);
+      transition: background 0.15s;
+    }
+    .shake-display.shaking { background: var(--red-soft); }
+    .shake-count { font-family: 'DM Mono', monospace; font-size: 5rem; font-weight: 300; line-height: 1; color: var(--text); }
+    .shake-label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; }
+
+    /* Axis bars */
+    .axis-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }
+    .axis-row:last-child { margin-bottom: 0; }
+    .axis-name { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--muted); width: 12px; }
+    .axis-bar-wrap { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; position: relative; }
+    .axis-bar-center { position: absolute; left: 50%; top: 0; height: 100%; width: 1px; background: var(--border); }
+    .axis-bar-fill { height: 100%; border-radius: 4px; transition: width 0.08s, left 0.08s; position: absolute; }
+    .x-fill { background: #f87171; }
+    .y-fill { background: var(--amber); }
+    .z-fill { background: var(--green); }
+    .axis-val { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text); width: 52px; text-align: right; }
+
+    /* Threshold slider */
+    .slider-row { display: flex; align-items: center; gap: 0.75rem; }
+    .slider-row label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+    .slider-row input { flex: 1; accent-color: var(--accent); }
+    .slider-row span { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--text); width: 40px; text-align: right; }
+
+    @keyframes shake-anim { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    .shaking .shake-count { animation: shake-anim 0.15s ease-in-out; }
+
+    .reset-btn { margin-top: 0.75rem; width: 100%; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.72rem; cursor: pointer; }
+    .reset-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+  </style>
+</head>
+<body>
+
+  <nav class="sitenav">
+    <a href="index.html">Voice</a>
+    <a href="camera.html">Camera</a>
+    <a href="orientation.html">Orientation</a>
+    <a href="motion.html" class="active">Motion</a>
+    <a href="battery.html">Battery</a>
+  </nav>
+
+  <header>
+    <h1>Motion</h1>
+    <span>DeviceMotion API</span>
+  </header>
+
+  <div class="main">
+
+    <button class="btn" id="startBtn">Enable motion sensor</button>
+    <div class="status" id="status">tap the button, then shake the device</div>
+
+    <div class="panel">
+      <div class="label">shake counter</div>
+      <div class="shake-display" id="shakeDisplay">
+        <div class="shake-count" id="shakeCount">0</div>
+        <div class="shake-label">shakes detected</div>
+      </div>
+      <button class="reset-btn" id="resetBtn">reset counter</button>
+    </div>
+
+    <div class="panel">
+      <div class="label">acceleration (m/s²)</div>
+      <div class="axis-row">
+        <div class="axis-name" style="color:#f87171">x</div>
+        <div class="axis-bar-wrap">
+          <div class="axis-bar-center"></div>
+          <div class="axis-bar-fill x-fill" id="xBar" style="width:0%;left:50%"></div>
+        </div>
+        <div class="axis-val" id="xVal">0.00</div>
+      </div>
+      <div class="axis-row">
+        <div class="axis-name" style="color:#fbbf24">y</div>
+        <div class="axis-bar-wrap">
+          <div class="axis-bar-center"></div>
+          <div class="axis-bar-fill y-fill" id="yBar" style="width:0%;left:50%"></div>
+        </div>
+        <div class="axis-val" id="yVal">0.00</div>
+      </div>
+      <div class="axis-row">
+        <div class="axis-name" style="color:#4ade80">z</div>
+        <div class="axis-bar-wrap">
+          <div class="axis-bar-center"></div>
+          <div class="axis-bar-fill z-fill" id="zBar" style="width:0%;left:50%"></div>
+        </div>
+        <div class="axis-val" id="zVal">0.00</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">shake sensitivity</div>
+      <div class="slider-row">
+        <label>threshold</label>
+        <input type="range" id="thresholdSlider" min="5" max="40" step="1" value="15" />
+        <span id="thresholdVal">15</span>
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:0.6rem;line-height:1.5">
+        Lower = more sensitive. A shake is counted when total acceleration exceeds the threshold.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn')
+    const statusEl = document.getElementById('status')
+    const shakeDisplay = document.getElementById('shakeDisplay')
+    const shakeCount = document.getElementById('shakeCount')
+    const resetBtn = document.getElementById('resetBtn')
+    const thresholdSlider = document.getElementById('thresholdSlider')
+    const thresholdVal = document.getElementById('thresholdVal')
+
+    let count = 0
+    let lastShake = 0
+    let threshold = 15
+
+    thresholdSlider.addEventListener('input', () => {
+      threshold = parseInt(thresholdSlider.value)
+      thresholdVal.textContent = threshold
+    })
+
+    resetBtn.addEventListener('click', () => { count = 0; shakeCount.textContent = '0' })
+
+    function setBar(id, val, max) {
+      const bar = document.getElementById(id)
+      const pct = Math.min(Math.abs(val) / max * 50, 50)
+      bar.style.width = pct.toFixed(1) + '%'
+      bar.style.left = val >= 0 ? '50%' : (50 - pct).toFixed(1) + '%'
+    }
+
+    function handleMotion(e) {
+      const acc = e.accelerationIncludingGravity || e.acceleration
+      if (!acc) return
+
+      statusEl.textContent = 'motion sensor active — shake the device'
+      statusEl.className = 'status active'
+
+      const x = acc.x || 0
+      const y = acc.y || 0
+      const z = acc.z || 0
+
+      document.getElementById('xVal').textContent = x.toFixed(2)
+      document.getElementById('yVal').textContent = y.toFixed(2)
+      document.getElementById('zVal').textContent = z.toFixed(2)
+
+      setBar('xBar', x, 20)
+      setBar('yBar', y, 20)
+      setBar('zBar', z, 20)
+
+      const total = Math.sqrt(x * x + y * y + z * z)
+      const now = Date.now()
+
+      if (total > threshold && now - lastShake > 500) {
+        lastShake = now
+        count++
+        shakeCount.textContent = count
+        shakeDisplay.classList.add('shaking')
+        statusEl.textContent = 'shake detected! total: ' + count
+        statusEl.className = 'status shake'
+        setTimeout(() => shakeDisplay.classList.remove('shaking'), 400)
+        setTimeout(() => { statusEl.textContent = 'motion sensor active — shake the device'; statusEl.className = 'status active' }, 1000)
+      }
+    }
+
+    function startListening() {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission()
+          .then(state => {
+            if (state === 'granted') {
+              window.addEventListener('devicemotion', handleMotion)
+              startBtn.style.display = 'none'
+            } else { statusEl.textContent = 'permission denied' }
+          }).catch(() => { statusEl.textContent = 'could not request permission' })
+      } else {
+        window.addEventListener('devicemotion', handleMotion)
+        startBtn.style.display = 'none'
+        statusEl.textContent = 'sensor listening...'
+      }
+    }
+
+    startBtn.addEventListener('click', startListening)
+  </script>
+</body>
+</html>

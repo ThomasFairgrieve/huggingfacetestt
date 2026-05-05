@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Camera — Device API Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0e0f11; --surface: #16181c; --surface2: #1e2025;
+      --border: rgba(255,255,255,0.07); --text: #e8e9eb; --muted: #6b6f7a;
+      --accent: #7c6fff; --accent-soft: rgba(124,111,255,0.12);
+      --green: #4ade80; --green-soft: rgba(74,222,128,0.10);
+      --red: #f87171; --red-soft: rgba(248,113,113,0.10);
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 2rem 1rem 4rem;
+    }
+    .sitenav {
+      width: 100%; max-width: 640px; display: flex; gap: 0.25rem;
+      margin-bottom: 2rem; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 12px; padding: 0.35rem;
+    }
+    .sitenav a {
+      flex: 1; text-align: center; text-decoration: none;
+      font-family: 'DM Mono', monospace; font-size: 0.72rem;
+      color: var(--muted); padding: 0.45rem 0.25rem;
+      border-radius: 8px; transition: all 0.15s;
+    }
+    .sitenav a:hover { color: var(--text); background: var(--surface2); }
+    .sitenav a.active { color: var(--text); background: var(--surface2); }
+    header { width: 100%; max-width: 640px; display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 2rem; }
+    header h1 { font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 400; }
+    header span { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; }
+    .main { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 1rem; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; }
+    .label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.75rem; }
+    .video-wrap {
+      position: relative; border-radius: 10px; overflow: hidden;
+      background: var(--surface2); aspect-ratio: 4/3; width: 100%;
+    }
+    video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    canvas#preview { width: 100%; height: 100%; object-fit: cover; display: none; border-radius: 10px; }
+    .filter-bar { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.75rem; }
+    .filter-btn {
+      font-family: 'DM Mono', monospace; font-size: 0.7rem;
+      padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--muted); cursor: pointer; transition: all 0.15s;
+    }
+    .filter-btn:hover, .filter-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .btn-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    .btn {
+      flex: 1; height: 44px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { border-color: rgba(255,255,255,0.2); }
+    .btn.primary { border-color: rgba(124,111,255,0.35); background: var(--accent-soft); color: #a89fff; }
+    .btn.danger { border-color: rgba(248,113,113,0.3); background: var(--red-soft); color: var(--red); }
+    .status { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); min-height: 1.2em; padding: 0 0.25rem; }
+    .status.active { color: var(--green); }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .info-card { background: var(--surface2); border-radius: 10px; padding: 0.75rem 1rem; }
+    .info-card .val { font-family: 'DM Mono', monospace; font-size: 1.1rem; color: var(--text); }
+    .info-card .key { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+    .camera-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.78rem; padding: 6px 10px; width: 100%; margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="sitenav">
+    <a href="index.html">Voice</a>
+    <a href="camera.html" class="active">Camera</a>
+    <a href="orientation.html">Orientation</a>
+    <a href="motion.html">Motion</a>
+    <a href="battery.html">Battery</a>
+  </nav>
+
+  <header>
+    <h1>Camera</h1>
+    <span>getUserMedia API</span>
+  </header>
+
+  <div class="main">
+
+    <div class="panel">
+      <div class="label">live feed</div>
+      <select class="camera-select" id="camSelect">
+        <option>Loading cameras...</option>
+      </select>
+      <div class="video-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="preview"></canvas>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="none">none</button>
+        <button class="filter-btn" data-filter="grayscale(100%)">greyscale</button>
+        <button class="filter-btn" data-filter="sepia(100%)">sepia</button>
+        <button class="filter-btn" data-filter="saturate(200%)">vivid</button>
+        <button class="filter-btn" data-filter="invert(100%)">invert</button>
+        <button class="filter-btn" data-filter="hue-rotate(180deg)">hue shift</button>
+      </div>
+      <div class="btn-row" style="margin-top:0.75rem">
+        <button class="btn primary" id="captureBtn">Capture photo</button>
+        <button class="btn" id="toggleBtn">Start camera</button>
+      </div>
+    </div>
+
+    <div class="status" id="status">camera not started</div>
+
+    <div class="panel" id="photoPanel" style="display:none">
+      <div class="label">captured photo</div>
+      <canvas id="output" style="width:100%;border-radius:10px;display:block;"></canvas>
+      <div class="btn-row" style="margin-top:0.75rem">
+        <button class="btn" id="downloadBtn">Download image</button>
+        <button class="btn danger" id="clearBtn">Discard</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">stream info</div>
+      <div class="info-grid">
+        <div class="info-card"><div class="val" id="infoW">—</div><div class="key">width (px)</div></div>
+        <div class="info-card"><div class="val" id="infoH">—</div><div class="key">height (px)</div></div>
+        <div class="info-card"><div class="val" id="infoFPS">—</div><div class="key">frame rate</div></div>
+        <div class="info-card"><div class="val" id="infoFacing">—</div><div class="key">facing</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const video = document.getElementById('video')
+    const preview = document.getElementById('preview')
+    const output = document.getElementById('output')
+    const captureBtn = document.getElementById('captureBtn')
+    const toggleBtn = document.getElementById('toggleBtn')
+    const downloadBtn = document.getElementById('downloadBtn')
+    const clearBtn = document.getElementById('clearBtn')
+    const camSelect = document.getElementById('camSelect')
+    const photoPanel = document.getElementById('photoPanel')
+    const statusEl = document.getElementById('status')
+    const filterBtns = document.querySelectorAll('.filter-btn')
+
+    let stream = null
+    let currentFilter = 'none'
+    let running = false
+
+    async function getCameras() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true })
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const cams = devices.filter(d => d.kind === 'videoinput')
+        camSelect.innerHTML = ''
+        cams.forEach((c, i) => {
+          const opt = document.createElement('option')
+          opt.value = c.deviceId
+          opt.textContent = c.label || 'Camera ' + (i + 1)
+          camSelect.appendChild(opt)
+        })
+        if (cams.length > 1) {
+          const back = cams.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear'))
+          if (back) camSelect.value = back.deviceId
+        }
+      } catch (e) {
+        camSelect.innerHTML = '<option>No cameras found</option>'
+      }
+    }
+
+    async function startCamera() {
+      try {
+        if (stream) stopCamera()
+        const constraints = {
+          video: { deviceId: camSelect.value ? { exact: camSelect.value } : undefined, width: { ideal: 1280 }, height: { ideal: 720 } }
+        }
+        stream = await navigator.mediaDevices.getUserMedia(constraints)
+        video.srcObject = stream
+        video.style.display = 'block'
+        preview.style.display = 'none'
+        running = true
+        toggleBtn.textContent = 'Stop camera'
+        statusEl.textContent = 'camera active'
+        statusEl.className = 'status active'
+
+        video.onloadedmetadata = () => {
+          const track = stream.getVideoTracks()[0]
+          const settings = track.getSettings()
+          document.getElementById('infoW').textContent = settings.width || '—'
+          document.getElementById('infoH').textContent = settings.height || '—'
+          document.getElementById('infoFPS').textContent = settings.frameRate ? Math.round(settings.frameRate) : '—'
+          document.getElementById('infoFacing').textContent = settings.facingMode || 'unknown'
+        }
+      } catch (e) {
+        statusEl.textContent = 'error: ' + e.message
+        statusEl.className = 'status'
+      }
+    }
+
+    function stopCamera() {
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null }
+      video.srcObject = null
+      running = false
+      toggleBtn.textContent = 'Start camera'
+      statusEl.textContent = 'camera stopped'
+      statusEl.className = 'status'
+    }
+
+    toggleBtn.addEventListener('click', () => running ? stopCamera() : startCamera())
+    camSelect.addEventListener('change', () => { if (running) startCamera() })
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+        currentFilter = btn.dataset.filter
+        video.style.filter = currentFilter === 'none' ? '' : currentFilter
+      })
+    })
+
+    captureBtn.addEventListener('click', () => {
+      if (!running) return
+      const ctx = output.getContext('2d')
+      output.width = video.videoWidth
+      output.height = video.videoHeight
+      if (currentFilter !== 'none') ctx.filter = currentFilter
+      ctx.drawImage(video, 0, 0)
+      photoPanel.style.display = 'block'
+      statusEl.textContent = 'photo captured'
+    })
+
+    downloadBtn.addEventListener('click', () => {
+      const a = document.createElement('a')
+      a.download = 'photo-' + Date.now() + '.png'
+      a.href = output.toDataURL()
+      a.click()
+    })
+
+    clearBtn.addEventListener('click', () => { photoPanel.style.display = 'none' })
+
+    getCameras()
+  </script>
+</body>
+</html>
