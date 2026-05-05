@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PL Insights — AI Football App</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --pl-purple: #37003c;
+    --pl-green: #00ff85;
+    --pl-white: #ffffff;
+    --pl-light: #f8f6f9;
+    --pl-mid: #e8e2eb;
+    --pl-text: #1a0020;
+    --pl-muted: #6b5c72;
+    --pl-card: #ffffff;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--pl-light);
+    color: var(--pl-text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* NAV */
+  nav {
+    background: var(--pl-purple);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(55,0,60,0.3);
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 1rem 1.5rem 1rem 0;
+    border-right: 1px solid rgba(255,255,255,0.1);
+    margin-right: 1rem;
+    text-decoration: none;
+  }
+
+  .nav-logo {
+    width: 36px;
+    height: 36px;
+    background: var(--pl-green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--pl-purple);
+    flex-shrink: 0;
+  }
+
+  .nav-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--pl-white);
+    letter-spacing: 0.02em;
+  }
+
+  .nav-title span {
+    color: var(--pl-green);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0;
+    flex: 1;
+  }
+
+  .nav-link {
+    padding: 1.1rem 1rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.65);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .nav-link:hover { color: var(--pl-white); }
+  .nav-link.active { color: var(--pl-green); border-bottom-color: var(--pl-green); }
+
+  .nav-badge {
+    margin-left: auto;
+    background: rgba(0,255,133,0.15);
+    color: var(--pl-green);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,255,133,0.3);
+  }
+
+  /* MAIN */
+  main {
+    flex: 1;
+    max-width: 960px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--pl-card);
+    border-radius: var(--radius);
+    border: 1px solid var(--pl-mid);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .card-sm {
+    background: var(--pl-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--pl-mid);
+    padding: 1rem 1.25rem;
+  }
+
+  /* TYPOGRAPHY */
+  .page-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--pl-purple);
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+
+  .page-sub {
+    font-size: 14px;
+    color: var(--pl-muted);
+    margin-bottom: 1.75rem;
+    line-height: 1.6;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pl-muted);
+    margin-bottom: 1rem;
+  }
+
+  /* STAT CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.75rem;
+  }
+
+  .stat-card {
+    background: var(--pl-purple);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    color: white;
+  }
+
+  .stat-card.light {
+    background: var(--pl-card);
+    border: 1px solid var(--pl-mid);
+    color: var(--pl-text);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.65;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-card .stat-value { color: var(--pl-green); }
+  .stat-card.light .stat-value { color: var(--pl-purple); }
+
+  .stat-meta { font-size: 12px; opacity: 0.6; }
+
+  /* LEAGUE TABLE */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--pl-mid); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--pl-card);
+  }
+
+  thead tr { background: var(--pl-purple); }
+  thead th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+  }
+
+  thead th:first-child { border-radius: 11px 0 0 0; }
+  thead th:last-child { border-radius: 0 11px 0 0; text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--pl-mid);
+    transition: background 0.1s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--pl-light); }
+
+  td {
+    padding: 10px 12px;
+    vertical-align: middle;
+  }
+
+  td:last-child { text-align: right; }
+
+  .pos-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pl-muted);
+    min-width: 20px;
+  }
+
+  .pos-cl { color: #1a56db; }
+  .pos-el { color: #f59e0b; }
+  .pos-rel { color: #e53e3e; }
+
+  .team-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .team-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 800;
+    flex-shrink: 0;
+    color: white;
+  }
+
+  .team-name { font-weight: 600; font-size: 13px; }
+  .pts-cell { font-weight: 700; color: var(--pl-purple); }
+
+  .form-dots {
+    display: flex;
+    gap: 3px;
+    justify-content: flex-end;
+  }
+
+  .form-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 8px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+
+  .form-dot.W { background: #22c55e; }
+  .form-dot.D { background: #94a3b8; }
+  .form-dot.L { background: #ef4444; }
+
+  /* RESULTS */
+  .match-card {
+    background: var(--pl-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--pl-mid);
+    padding: 1rem 1.25rem;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .match-team { font-size: 14px; font-weight: 600; }
+  .match-team.home { text-align: right; }
+  .match-team.away { text-align: left; }
+
+  .match-score {
+    text-align: center;
+    background: var(--pl-purple);
+    color: white;
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    min-width: 70px;
+  }
+
+  .match-meta {
+    font-size: 11px;
+    color: var(--pl-muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  /* API KEY INPUT */
+  .api-section {
+    background: linear-gradient(135deg, var(--pl-purple) 0%, #5a0066 100%);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+    color: white;
+  }
+
+  .api-section label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 8px;
+  }
+
+  .api-row { display: flex; gap: 10px; align-items: center; }
+
+  .api-row input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    outline: none;
+  }
+
+  .api-row input::placeholder { color: rgba(255,255,255,0.4); }
+  .api-row input:focus { border-color: var(--pl-green); background: rgba(255,255,255,0.15); }
+
+  .api-row a {
+    color: var(--pl-green);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .api-row a:hover { text-decoration: underline; }
+
+  /* BUTTONS */
+  .btn {
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:hover { opacity: 0.9; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-primary {
+    background: var(--pl-green);
+    color: var(--pl-purple);
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 2px solid var(--pl-purple);
+    color: var(--pl-purple);
+  }
+
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
+
+  /* TEXTAREA */
+  textarea {
+    width: 100%;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--pl-mid);
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 110px;
+    background: white;
+    color: var(--pl-text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  textarea:focus { border-color: var(--pl-purple); }
+
+  /* SENTIMENT RESULT */
+  .result-box {
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--pl-mid);
+    margin-top: 1.25rem;
+  }
+
+  .result-header {
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .result-header.positive { background: #f0faf4; border-bottom: 1px solid #c6f6d5; }
+  .result-header.negative { background: #fff5f5; border-bottom: 1px solid #fed7d7; }
+
+  .sentiment-label {
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .positive .sentiment-label { color: #276749; }
+  .negative .sentiment-label { color: #c53030; }
+
+  .sentiment-icon { font-size: 22px; }
+
+  .confidence-pct {
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .positive .confidence-pct { color: #276749; }
+  .negative .confidence-pct { color: #c53030; }
+
+  .bars-section { padding: 1.25rem; background: white; }
+
+  .bar-row { margin-bottom: 12px; }
+  .bar-meta { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .bar-name { font-size: 13px; color: var(--pl-muted); }
+  .bar-val { font-size: 13px; font-weight: 600; color: var(--pl-text); }
+
+  .bar-track {
+    height: 8px;
+    background: var(--pl-mid);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .bar-fill.pos { background: #22c55e; }
+  .bar-fill.neg { background: #ef4444; }
+
+  /* LOADING */
+  .spinner-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 1.25rem 0;
+    color: var(--pl-muted);
+    font-size: 14px;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid var(--pl-mid);
+    border-top-color: var(--pl-purple);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ERROR */
+  .error-box {
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    font-size: 14px;
+    color: #c53030;
+    margin-top: 1rem;
+    line-height: 1.6;
+  }
+
+  /* CHIPS */
+  .chip {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 3px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+
+  .chip:hover { transform: translateY(-1px); }
+
+  /* CODE BLOCK */
+  .code-wrap {
+    background: #1a0020;
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+  }
+
+  .code-wrap pre {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #e2d8e8;
+    white-space: pre;
+  }
+
+  .kw { color: #79c0ff; }
+  .str { color: #a5d6a7; }
+  .cm { color: #8b9fc0; font-style: italic; }
+  .fn { color: var(--pl-green); }
+  .num { color: #ffab70; }
+
+  /* HOW IT WORKS STEPS */
+  .steps { counter-reset: step; }
+  .step {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--pl-purple);
+    color: var(--pl-green);
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+
+  .step-content h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .step-content p { font-size: 13px; color: var(--pl-muted); line-height: 1.7; }
+
+  /* QUICK EXAMPLES */
+  .example-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+  /* HIGHLIGHT ROW */
+  .highlight-row {
+    background: linear-gradient(135deg, var(--pl-purple), #5a0066);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    color: white;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .highlight-row h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .highlight-row p { font-size: 13px; opacity: 0.75; }
+  .hl-badge {
+    background: var(--pl-green);
+    color: var(--pl-purple);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* SCORERS */
+  .scorer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--pl-mid);
+    font-size: 14px;
+  }
+
+  .scorer-row:last-child { border-bottom: none; }
+  .scorer-name { font-weight: 600; }
+  .scorer-team { font-size: 12px; color: var(--pl-muted); }
+  .scorer-goals {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: var(--pl-purple);
+  }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    nav { overflow-x: auto; }
+    .nav-links { min-width: max-content; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .match-card { font-size: 12px; }
+    main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">PL</div>
+    <span class="nav-title">PL <span>Insights</span></span>
+  </div>
+  <div class="nav-links">
+    <div class="nav-link active" onclick="showPage('home', this)">Home</div>
+    <div class="nav-link" onclick="showPage('results', this)">Results</div>
+    <div class="nav-link" onclick="showPage('analyse', this)">AI Match Analyst</div>
+    <div class="nav-link" onclick="showPage('fanzone', this)">Fan Zone</div>
+    <div class="nav-link" onclick="showPage('howto', this)">How It Works</div>
+  </div>
+  <div class="nav-badge">AI Powered</div>
+</nav>
+
+<main>
+
+  <!-- PAGE: HOME -->
+  <div id="page-home" class="page active">
+    <h1 class="page-title">Premier League 2024/25</h1>
+    <p class="page-sub">Live standings, results and AI-powered match analysis. Use the AI Match Analyst to analyse any match commentary.</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Matches Played</div>
+        <div class="stat-value">380</div>
+        <div class="stat-meta">This season</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Goals Scored</div>
+        <div class="stat-value">1,082</div>
+        <div class="stat-meta">Avg 2.85/game</div>
+      </div>
+      <div class="stat-card light">
+        <div class="stat-label">Top Club</div>
+        <div class="stat-value">LIV</div>
+        <div class="stat-meta">Liverpool FC · 82 pts</div>
+      </div>
+      <div class="stat-card light">
+        <div class="stat-label">Top Scorer</div>
+        <div class="stat-value">22</div>
+        <div class="stat-meta">Salah · Liverpool</div>
+      </div>
+    </div>
+
+    <div class="section-title">Current Standings</div>
+    <div class="table-wrap">
+      <table id="league-table"></table>
+    </div>
+  </div>
+
+  <!-- PAGE: RESULTS -->
+  <div id="page-results" class="page">
+    <h1 class="page-title">Recent Results</h1>
+    <p class="page-sub">Latest Premier League match results from the 2024/25 season.</p>
+
+    <div id="results-list"></div>
+  </div>
+
+  <!-- PAGE: AI MATCH ANALYST -->
+  <div id="page-analyse" class="page">
+    <h1 class="page-title">AI Match Analyst</h1>
+    <p class="page-sub">Paste any match report, fan comment, or post-match reaction. Our AI will analyse the sentiment and tell you whether it's positive or negative — and how confident it is.</p>
+
+    <div class="api-section">
+      <label>Hugging Face API Token</label>
+      <div class="api-row">
+        <input type="password" id="token-analyse" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" />
+        <a href="https://huggingface.co/settings/tokens" target="_blank">Get free token ↗</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin-bottom:8px;">Match comment or report</div>
+      <textarea id="analyse-input" placeholder="e.g. 'What a performance from Arsenal tonight. Saka was absolutely electric and the whole team was outstanding. Fully deserved three points!'"></textarea>
+
+      <div class="example-chips">
+        <div class="section-title" style="margin:10px 0 4px;width:100%">Try an example:</div>
+        <span class="chip" style="background:#f0faf4;color:#276749;border-color:#c6f6d5;" onclick="setExample('Arsenal were absolutely sensational tonight. Odegaard ran the midfield and Saka was unplayable on the wing. One of the best performances of the season.')">Arsenal win</span>
+        <span class="chip" style="background:#fff5f5;color:#c53030;border-color:#fed7d7;" onclick="setExample('Dreadful performance from United. No pressing, no creativity, no cutting edge. The fans are right to be frustrated — this has been going on for too long.')">United loss</span>
+        <span class="chip" style="background:#fffbeb;color:#92400e;border-color:#fcd34d;" onclick="setExample('A point at the Etihad is not to be sniffed at but we had our chances and the keeper kept them in it. Mixed feelings overall.')">Draw reaction</span>
+        <span class="chip" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;" onclick="setExample('Klopp would have been proud of that performance. The press was relentless, the finishing clinical, and the crowd were magnificent throughout.')">Liverpool fan</span>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:1rem;align-items:center;">
+        <button class="btn btn-primary" id="analyse-btn" onclick="runAnalysis()">Analyse sentiment</button>
+        <span style="font-size:12px;color:var(--pl-muted);">Uses: distilbert-base-uncased-finetuned-sst-2-english</span>
+      </div>
+    </div>
+
+    <div id="analyse-loading" style="display:none;" class="spinner-row">
+      <div class="spinner"></div>
+      <span>Sending to Hugging Face API...</span>
+    </div>
+    <div id="analyse-error"></div>
+    <div id="analyse-result"></div>
+  </div>
+
+  <!-- PAGE: FAN ZONE -->
+  <div id="page-fanzone" class="page">
+    <h1 class="page-title">Fan Zone</h1>
+    <p class="page-sub">What do fans really think? Enter any football opinion and see the AI break down the sentiment in real time. Compare reactions from different sets of supporters.</p>
+
+    <div class="api-section">
+      <label>Hugging Face API Token</label>
+      <div class="api-row">
+        <input type="password" id="token-fanzone" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" />
+        <a href="https://huggingface.co/settings/tokens" target="_blank">Get free token ↗</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin-bottom:8px;">Enter a fan comment</div>
+      <textarea id="fanzone-input" placeholder="Write what you think about any Premier League topic..." style="min-height:80px;"></textarea>
+      <div style="margin-top:10px;">
+        <button class="btn btn-primary btn-sm" id="fanzone-btn" onclick="runFanzone()">Analyse</button>
+      </div>
+    </div>
+
+    <div id="fanzone-loading" style="display:none;" class="spinner-row">
+      <div class="spinner"></div>
+      <span>Calling the API...</span>
+    </div>
+    <div id="fanzone-error"></div>
+    <div id="fanzone-results"></div>
+  </div>
+
+  <!-- PAGE: HOW IT WORKS -->
+  <div id="page-howto" class="page">
+    <h1 class="page-title">How It Works</h1>
+    <p class="page-sub">This app uses the Hugging Face Inference API to perform AI sentiment analysis. Here's exactly how the code works — so you can build something similar yourself.</p>
+
+    <div class="highlight-row">
+      <div>
+        <h2>The API Call</h2>
+        <p>It's just a fetch() request. One function, fully reusable in any web or mobile app.</p>
+      </div>
+      <div class="hl-badge">Copy the code</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">The steps</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Get a free Hugging Face token</h4>
+            <p>Create a free account at huggingface.co, go to Settings → Tokens, and create a token with Read access. This is your key to the API — keep it private, never put it in public code.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Choose a model</h4>
+            <p>Hugging Face hosts thousands of open-source AI models. This app uses distilbert-base-uncased-finetuned-sst-2-english — a lightweight model trained specifically for sentiment analysis. The model URL becomes part of your fetch endpoint.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Make a POST request</h4>
+            <p>Send your text as JSON in the request body. Include your token in the Authorization header as a Bearer token. The API processes your text through the model and returns a JSON response.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>Read the JSON response</h4>
+            <p>The API returns an array of objects, each with a label (POSITIVE or NEGATIVE) and a score (0 to 1). Your code reads this data and updates the UI — that's the whole app.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">The actual fetch code</div>
+    <div class="code-wrap">
+      <pre><span class="cm">// 1. Define the model endpoint</span>
+<span class="kw">const</span> MODEL_URL = <span class="str">"https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english"</span>;
+
+<span class="cm">// 2. Make the API call</span>
+<span class="kw">async function</span> <span class="fn">analyseSentiment</span>(text, token) {
+
+  <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(MODEL_URL, {
+    method: <span class="str">"POST"</span>,
+    headers: {
+      <span class="str">"Authorization"</span>: <span class="str">`Bearer ${token}`</span>,   <span class="cm">// Your HF token</span>
+      <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span>
+    },
+    body: <span class="fn">JSON.stringify</span>({ inputs: text })  <span class="cm">// The text to analyse</span>
+  });
+
+  <span class="kw">const</span> data = <span class="kw">await</span> response.<span class="fn">json</span>();
+
+  <span class="cm">// 3. data looks like this:</span>
+  <span class="cm">// [[{ label: "POSITIVE", score: 0.9998 },</span>
+  <span class="cm">//   { label: "NEGATIVE", score: 0.0002 }]]</span>
+
+  <span class="kw">return</span> data[<span class="num">0</span>];  <span class="cm">// Array of { label, score } objects</span>
+}</pre>
+    </div>
+
+    <div class="card-sm" style="margin-bottom:1.25rem;">
+      <div class="section-title">Why this matters</div>
+      <p style="font-size:14px;color:var(--pl-muted);line-height:1.8;">This exact fetch() pattern works identically in:<br>
+      <strong style="color:var(--pl-text);">Plain HTML/JS</strong> · <strong style="color:var(--pl-text);">React</strong> · <strong style="color:var(--pl-text);">React Native (mobile app)</strong> · <strong style="color:var(--pl-text);">Node.js (server)</strong><br><br>
+      Change the MODEL_URL to use a completely different AI capability — text generation, image classification, translation — with no other changes to your code structure. The pattern is always the same.</p>
+    </div>
+
+    <div class="section-title">Other models to try</div>
+    <div class="card">
+      <div class="scorer-row">
+        <div>
+          <div class="scorer-name">facebook/bart-large-mnli</div>
+          <div class="scorer-team">Zero-shot text classification — sort text into any categories you define</div>
+        </div>
+        <div class="scorer-goals">Classification</div>
+      </div>
+      <div class="scorer-row">
+        <div>
+          <div class="scorer-name">openai/whisper-large-v3</div>
+          <div class="scorer-team">Speech to text — transcribe audio files via the API</div>
+        </div>
+        <div class="scorer-goals">Audio</div>
+      </div>
+      <div class="scorer-row">
+        <div>
+          <div class="scorer-name">Helsinki-NLP/opus-mt-en-fr</div>
+          <div class="scorer-team">Translation — English to French, and hundreds of other language pairs</div>
+        </div>
+        <div class="scorer-goals">Translation</div>
+      </div>
+      <div class="scorer-row">
+        <div>
+          <div class="scorer-name">microsoft/DialoGPT-medium</div>
+          <div class="scorer-team">Conversational AI — build a chatbot with the same fetch pattern</div>
+        </div>
+        <div class="scorer-goals">Chat</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────────
+
+const TEAMS = [
+  { pos: 1, name: "Liverpool",         abbr: "LIV", color: "#c8102e", P:38, W:26, D:4,  L:8,  GD:+47, pts:82, form:"WWWDW" },
+  { pos: 2, name: "Arsenal",           abbr: "ARS", color: "#EF0107", P:38, W:24, D:5,  L:9,  GD:+40, pts:77, form:"WWDWL" },
+  { pos: 3, name: "Chelsea",           abbr: "CHE", color: "#034694", P:38, W:21, D:8,  L:9,  GD:+22, pts:71, form:"WDWWW" },
+  { pos: 4, name: "Nottm Forest",      abbr: "NFO", color: "#dd0000", P:38, W:20, D:6,  L:12, GD:+13, pts:66, form:"WWLDW" },
+  { pos: 5, name: "Newcastle",         abbr: "NEW", color: "#241f20", P:38, W:19, D:7,  L:12, GD:+18, pts:64, form:"DLWWW" },
+  { pos: 6, name: "Manchester City",   abbr: "MCI", color: "#6CABDD", P:38, W:18, D:7,  L:13, GD:+16, pts:61, form:"WLLWW" },
+  { pos: 7, name: "Aston Villa",       abbr: "AVL", color: "#670e36", P:38, W:17, D:7,  L:14, GD:+11, pts:58, form:"WDLWL" },
+  { pos: 8, name: "Brighton",          abbr: "BHA", color: "#0057B8", P:38, W:15, D:9,  L:14, GD:+4,  pts:54, form:"DWDWW" },
+  { pos: 9, name: "Fulham",            abbr: "FUL", color: "#000000", P:38, W:14, D:11, L:13, GD:+3,  pts:53, form:"DWLDW" },
+  { pos:10, name: "Tottenham",         abbr: "TOT", color: "#132257", P:38, W:15, D:7,  L:16, GD:-2,  pts:52, form:"WLLWD" },
+  { pos:11, name: "Brentford",         abbr: "BRE", color: "#e30613", P:38, W:13, D:9,  L:16, GD:-5,  pts:48, form:"LDDWL" },
+  { pos:12, name: "West Ham",          abbr: "WHU", color: "#7A263A", P:38, W:12, D:7,  L:19, GD:-11, pts:43, form:"LLWDL" },
+  { pos:13, name: "Manchester Utd",    abbr: "MUN", color: "#DA291C", P:38, W:11, D:9,  L:18, GD:-14, pts:42, form:"DLLLW" },
+  { pos:14, name: "Everton",           abbr: "EVE", color: "#003399", P:38, W:10, D:10, L:18, GD:-15, pts:40, form:"DLLWD" },
+  { pos:15, name: "Wolverhampton",     abbr: "WOL", color: "#FDB913", P:38, W:9,  D:10, L:19, GD:-18, pts:37, form:"LWDDL" },
+  { pos:16, name: "Crystal Palace",    abbr: "CRY", color: "#1B458F", P:38, W:9,  D:8,  L:21, GD:-19, pts:35, form:"LLDWL" },
+  { pos:17, name: "Bournemouth",       abbr: "BOU", color: "#d71920", P:38, W:9,  D:7,  L:22, GD:-21, pts:34, form:"WLLLD" },
+  { pos:18, name: "Leicester",         abbr: "LEI", color: "#003090", P:38, W:6,  D:7,  L:25, GD:-35, pts:25, form:"LLLLL" },
+  { pos:19, name: "Ipswich",           abbr: "IPS", color: "#0044aa", P:38, W:5,  D:7,  L:26, GD:-38, pts:22, form:"DLLLW" },
+  { pos:20, name: "Southampton",       abbr: "SOU", color: "#d71920", P:38, W:4,  D:5,  L:29, GD:-45, pts:17, form:"LLLLL" },
+];
+
+const RESULTS = [
+  { home:"Liverpool",   hScore:3, aScore:1, away:"Tottenham",      date:"4 May 2025",  venue:"Anfield" },
+  { home:"Arsenal",     hScore:2, aScore:0, away:"Everton",        date:"4 May 2025",  venue:"Emirates Stadium" },
+  { home:"Chelsea",     hScore:1, aScore:1, away:"Brentford",      date:"3 May 2025",  venue:"Stamford Bridge" },
+  { home:"Nottm Forest",hScore:2, aScore:1, away:"West Ham",       date:"3 May 2025",  venue:"City Ground" },
+  { home:"Newcastle",   hScore:4, aScore:0, away:"Leicester",      date:"2 May 2025",  venue:"St James' Park" },
+  { home:"Fulham",      hScore:1, aScore:2, away:"Brighton",       date:"2 May 2025",  venue:"Craven Cottage" },
+  { home:"Man Utd",     hScore:0, aScore:2, away:"Aston Villa",    date:"1 May 2025",  venue:"Old Trafford" },
+  { home:"Wolverhampton",hScore:1,aScore:1, away:"Bournemouth",    date:"1 May 2025",  venue:"Molineux" },
+  { home:"Crystal Palace",hScore:0,aScore:3,away:"Man City",       date:"30 Apr 2025", venue:"Selhurst Park" },
+  { home:"Southampton", hScore:1, aScore:1, away:"Ipswich",        date:"30 Apr 2025", venue:"St Mary's" },
+  { home:"Everton",     hScore:2, aScore:2, away:"Chelsea",        date:"27 Apr 2025", venue:"Goodison Park" },
+  { home:"Man City",    hScore:1, aScore:2, away:"Liverpool",      date:"26 Apr 2025", venue:"Etihad Stadium" },
+];
+
+// ─── NAVIGATION ────────────────────────────────────────────────────────────
+
+function showPage(pageId, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ─── RENDER LEAGUE TABLE ───────────────────────────────────────────────────
+
+function posClass(pos) {
+  if (pos <= 4) return 'pos-cl';
+  if (pos <= 6) return 'pos-el';
+  if (pos >= 18) return 'pos-rel';
+  return '';
+}
+
+function renderTable() {
+  const t = document.getElementById('league-table');
+  let html = `<thead><tr>
+    <th>#</th><th>Club</th>
+    <th>P</th><th>W</th><th>D</th><th>L</th>
+    <th>GD</th><th>Pts</th><th>Form</th>
+  </tr></thead><tbody>`;
+
+  TEAMS.forEach(tm => {
+    const form = tm.form.split('').map(f =>
+      `<div class="form-dot ${f}">${f}</div>`
+    ).join('');
+
+    const gd = tm.GD > 0 ? '+' + tm.GD : tm.GD;
+
+    html += `<tr>
+      <td><span class="pos-num ${posClass(tm.pos)}">${tm.pos}</span></td>
+      <td>
+        <div class="team-cell">
+          <div class="team-badge" style="background:${tm.color}">${tm.abbr}</div>
+          <span class="team-name">${tm.name}</span>
+        </div>
+      </td>
+      <td>${tm.P}</td><td>${tm.W}</td><td>${tm.D}</td><td>${tm.L}</td>
+      <td>${gd}</td>
+      <td class="pts-cell">${tm.pts}</td>
+      <td><div class="form-dots">${form}</div></td>
+    </tr>`;
+  });
+
+  t.innerHTML = html + '</tbody>';
+}
+
+// ─── RENDER RESULTS ────────────────────────────────────────────────────────
+
+function renderResults() {
+  const container = document.getElementById('results-list');
+  container.innerHTML = RESULTS.map(r => `
+    <div class="match-card">
+      <div class="match-team home">${r.home}</div>
+      <div>
+        <div class="match-score">${r.hScore} – ${r.aScore}</div>
+        <div class="match-meta">${r.date}<br>${r.venue}</div>
+      </div>
+      <div class="match-team away">${r.away}</div>
+    </div>
+  `).join('');
+}
+
+// ─── HF API CALL ───────────────────────────────────────────────────────────
+
+async function callHF(text, token) {
+  const url = "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english";
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ inputs: text })
+  });
+  const data = await response.json();
+  if (!response.ok || data.error) {
+    throw new Error(data.error || `API error ${response.status}`);
+  }
+  return data[0];
+}
+
+function buildResultHTML(results) {
+  const sorted = [...results].sort((a, b) => b.score - a.score);
+  const top = sorted[0];
+  const isPos = top.label === "POSITIVE";
+  const posScore = results.find(r => r.label === "POSITIVE")?.score || 0;
+  const negScore = results.find(r => r.label === "NEGATIVE")?.score || 0;
+
+  return `
+    <div class="result-box">
+      <div class="result-header ${isPos ? 'positive' : 'negative'}">
+        <div class="sentiment-label">
+          <span class="sentiment-icon">${isPos ? '✓' : '✗'}</span>
+          ${isPos ? 'Positive sentiment' : 'Negative sentiment'}
+        </div>
+        <div class="confidence-pct">${(top.score * 100).toFixed(1)}%</div>
+      </div>
+      <div class="bars-section">
+        <div class="bar-row">
+          <div class="bar-meta">
+            <span class="bar-name">Positive</span>
+            <span class="bar-val">${(posScore * 100).toFixed(2)}%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill pos" style="width:${(posScore * 100).toFixed(1)}%"></div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-meta">
+            <span class="bar-name">Negative</span>
+            <span class="bar-val">${(negScore * 100).toFixed(2)}%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill neg" style="width:${(negScore * 100).toFixed(1)}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─── ANALYSE PAGE ──────────────────────────────────────────────────────────
+
+function setExample(text) {
+  document.getElementById('analyse-input').value = text;
+}
+
+async function runAnalysis() {
+  const token = document.getElementById('token-analyse').value.trim();
+  const text = document.getElementById('analyse-input').value.trim();
+  const btn = document.getElementById('analyse-btn');
+  const loading = document.getElementById('analyse-loading');
+  const errorEl = document.getElementById('analyse-error');
+  const resultEl = document.getElementById('analyse-result');
+
+  errorEl.innerHTML = '';
+  resultEl.innerHTML = '';
+
+  if (!token) {
+    errorEl.innerHTML = '<div class="error-box">Please enter your Hugging Face API token above.</div>';
+    return;
+  }
+  if (!text) {
+    errorEl.innerHTML = '<div class="error-box">Please enter some match commentary to analyse.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  loading.style.display = 'flex';
+
+  try {
+    const results = await callHF(text, token);
+    resultEl.innerHTML = buildResultHTML(results);
+  } catch (e) {
+    errorEl.innerHTML = `<div class="error-box"><strong>API error:</strong> ${e.message}<br>Check your token is valid and has read access.</div>`;
+  } finally {
+    btn.disabled = false;
+    loading.style.display = 'none';
+  }
+}
+
+// ─── FAN ZONE PAGE ─────────────────────────────────────────────────────────
+
+let fanzoneResults = [];
+
+async function runFanzone() {
+  const token = document.getElementById('token-fanzone').value.trim();
+  const text = document.getElementById('fanzone-input').value.trim();
+  const btn = document.getElementById('fanzone-btn');
+  const loading = document.getElementById('fanzone-loading');
+  const errorEl = document.getElementById('fanzone-error');
+  const resultsEl = document.getElementById('fanzone-results');
+
+  errorEl.innerHTML = '';
+
+  if (!token) {
+    errorEl.innerHTML = '<div class="error-box">Please enter your Hugging Face API token above.</div>';
+    return;
+  }
+  if (!text) {
+    errorEl.innerHTML = '<div class="error-box">Please enter a comment first.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  loading.style.display = 'flex';
+
+  try {
+    const results = await callHF(text, token);
+    const top = [...results].sort((a,b) => b.score - a.score)[0];
+    const isPos = top.label === "POSITIVE";
+
+    fanzoneResults.unshift({ text, top, isPos, results });
+    if (fanzoneResults.length > 5) fanzoneResults.pop();
+
+    resultsEl.innerHTML = fanzoneResults.map((r, i) => `
+      <div class="card-sm" style="margin-bottom:10px;border-left:3px solid ${r.isPos ? '#22c55e' : '#ef4444'};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:12px;font-weight:700;color:${r.isPos ? '#276749' : '#c53030'};">
+            ${r.isPos ? '▲ POSITIVE' : '▼ NEGATIVE'} · ${(r.top.score * 100).toFixed(1)}%
+          </span>
+          <span style="font-size:11px;color:var(--pl-muted);">Comment ${fanzoneResults.length - i}</span>
+        </div>
+        <p style="font-size:13px;color:var(--pl-muted);line-height:1.5;">"${r.text.length > 120 ? r.text.slice(0,120) + '…' : r.text}"</p>
+      </div>
+    `).join('');
+
+    document.getElementById('fanzone-input').value = '';
+  } catch(e) {
+    errorEl.innerHTML = `<div class="error-box"><strong>API error:</strong> ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    loading.style.display = 'none';
+  }
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+
+renderTable();
+renderResults();
+</script>
+</body>
+</html>
